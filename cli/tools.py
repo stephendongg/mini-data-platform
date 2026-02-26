@@ -42,6 +42,11 @@ def sample_data(conn, table_name, limit=5):
     return run_query(conn, f"SELECT * FROM {schema}.{table} LIMIT {limit}")
 
 
+MAX_ROWS = 100
+
+
 def run_sql(conn, query):
-    """Execute a read-only SQL query and return results."""
+    """Execute a read-only SQL query and return up to MAX_ROWS results."""
+    if "limit" not in query.lower():
+        query = f"{query.rstrip(';')} LIMIT {MAX_ROWS}"
     return run_query(conn, query)
