@@ -1,6 +1,6 @@
 # Mini Data Platform — CLI Agent
 
-A CLI agent that answers ad-hoc analytical questions against a DuckDB warehouse using LLM-generated SQL.
+A CLI agent that answers ad-hoc analytical questions against a DuckDB warehouse. Uses OpenAI function calling to let the LLM explore the database schema and run SQL queries autonomously.
 
 ## Quick Start
 
@@ -12,36 +12,33 @@ uv run python -m cli.main           # Start the agent
 
 ## How It Works
 
-1. **Schema discovery** — On startup, queries `information_schema` to learn what tables and columns exist
-2. **SQL generation** — Sends the schema + user question to GPT-4o-mini, gets back a SQL query
-3. **Query execution** — Runs the SQL against DuckDB in read-only mode
-4. **Summarization** — Sends results back to the LLM for a plain-English answer
+The LLM has three tools it can call in a loop until it has enough info to answer:
+
+1. `list_tables` — see what tables exist and their row counts
+2. `describe_table` — get column names and types for a table
+3. `run_sql` — execute a read-only SQL query
 
 ## Architecture
 
 ```
 cli/
-  db.py            # Read-only DuckDB connection and query execution
-  discovery.py     # Runtime schema introspection
-  llm.py           # OpenAI API calls (SQL generation + summarization)
-  main.py          # Interactive REPL that ties it all together
+  db.py       # Read-only DuckDB connection and query execution
+  tools.py    # Tool functions: list_tables, describe_table, run_sql
+  llm.py      # OpenAI function calling setup and tool definitions
+  main.py     # Agent loop that routes tool calls until the LLM answers
 ```
 
 ## Design Decisions
 
-- **Read-only DuckDB** — Safety guarantee at the database level, no SQL parsing needed
-- **Generic schema discovery** — No hardcoded table or column names; works on any DuckDB database
-- **Marts schema only** — Queries the clean, analytics-ready layer rather than raw or staging
-- **GPT-4o-mini** — Fast and cheap, accurate enough for SQL generation
+- **Read-only DuckDB** — Safety guarantee at the database level
+- **Runtime schema discovery** — No hardcoded table or column names
+- **Marts schema only** — Queries the clean, analytics-ready layer
+- **GPT-4o-mini** — Fast, cheap, accurate enough for SQL generation
 
 ## What's Next
 
-This is an MVP. Planned improvements:
+- Multi-turn memory (follow-up questions)
+- Configurable data source (any DuckDB path/schema)
+- Sample data tool (let the LLM peek at rows)
 
-- **Retry logic** — Send SQL errors back to the LLM for self-correction
-- **Sample values in discovery** — Show distinct values for categorical columns so the LLM writes more accurate queries
-- **Multi-turn memory** — Support follow-up questions like "now break that down by category"
-- **Configurable data source** — Accept any DuckDB path and schema as CLI arguments
-- **Visualization** — Generate charts for trend-based questions
-
-See [instructions/README.md](instructions/README.md) for the original assignment and data platform documentation.
+See [instructions/README.md](instructions/README.md) for the original assignment.

@@ -1,46 +1,77 @@
-from tabulate import tabulate
-from cli.db import get_connection, run_query
-from cli.discovery import discover_schema
-from cli.llm import generate_sql, summarize_results
+import json
+from cli.db import get_connection
+from cli.llm import chat, SYSTEM_PROMPT
+from cli.tools import list_tables, describe_table, run_sql
+
+
+def execute_tool(conn, name, args):
+    """Route a tool call from the LLM to the matching Python function."""
+    if name == "list_tables":
+        return list_tables(conn)
+    elif name == "describe_table":
+        return describe_table(conn, args["table_name"])
+    elif name == "run_sql":
+        return run_sql(conn, args["query"])
+    else:
+        return {"error": f"Unknown tool: {name}"}
+
+
+def log_tool(name, args, result):
+    """Print what the agent is doing so the user can follow along."""
+    if name == "run_sql":
+        print(f"  → {name}")
+        for line in args["query"].strip().split("\n"):
+            print(f"    {line}")
+    else:
+        print(f"  → {name}({json.dumps(args)})")
+
+    preview = json.dumps(result, default=str)
+    if len(preview) > 150:
+        preview = preview[:150] + "..."
+    print(f"  ← {preview}\n")
 
 
 def main():
-    # Startup: connect and learn the schema once
     conn = get_connection()
-    schema_context = discover_schema(conn)
     print("Connected to warehouse. Ask a question (type 'exit' to quit).\n")
 
     while True:
-        # Wait for user input
         question = input("> ").strip()
         if not question:
             continue
         if question.lower() == "exit":
             break
 
-        # Step 1: Ask LLM to write SQL
-        sql = generate_sql(schema_context, question)
-        print(f"\n[SQL]\n{sql}\n")
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": question},
+        ]
 
-        # Step 2: Run the SQL against DuckDB
-        try:
-            results = run_query(conn, sql)
-        except Exception as e:
-            print(f"[Error] {e}\n")
-            continue
+        # Agent loop: LLM responds with either text (done) or tool calls (keep going)
+        while True:
+            response = chat(messages)
 
-        if not results:
-            print("[No results returned]\n")
-            continue
+            if not response.tool_calls:
+                print(f"\n{response.content}\n")
+                break
 
-        # Step 3: Show results as a table
-        print("[Results]")
-        print(tabulate(results, headers="keys", tablefmt="simple"))
-        print()
+            messages.append(response)
+            for tool_call in response.tool_calls:
+                name = tool_call.function.name
+                args = json.loads(tool_call.function.arguments)
 
-        # Step 4: Ask LLM to summarize in plain English
-        summary = summarize_results(question, sql, results)
-        print(f"[Answer]\n{summary}\n")
+                try:
+                    result = execute_tool(conn, name, args)
+                except Exception as e:
+                    result = {"error": str(e)}
+
+                log_tool(name, args, result)
+
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result, default=str),
+                })
 
     conn.close()
     print("Goodbye!")
