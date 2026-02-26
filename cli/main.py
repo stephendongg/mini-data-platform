@@ -38,14 +38,19 @@ def format_step(num, name, args, result):
         return f"  {num}. Sampled {rows} rows from {args['table_name']}"
     elif name == "run_sql":
         sql = args["query"].replace("\n", " ").strip()
-        return f"  {num}. SQL: {sql}"
+        prefix = f"  {num}. SQL: "
+        return textwrap.fill(sql, width=70, initial_indent=prefix, subsequent_indent="  " + " " * len(f"{num}. SQL: "))
     return f"  {num}. {name}"
 
 
 def print_result(question, trace, answer):
     """Print the answer and reasoning, then save to log file."""
-    indented_answer = textwrap.indent(answer, "  ")
-    print(f"\n  ── Answer ──\n{indented_answer}")
+    wrapped_answer = "\n".join(
+        textwrap.fill(line, width=70, initial_indent="  ", subsequent_indent="  ")
+        if line.strip() else ""
+        for line in answer.splitlines()
+    )
+    print(f"\n  ── Answer ──\n{wrapped_answer}")
 
     reasoning = explain(question, "\n".join(trace), answer)
     wrapped = textwrap.fill(reasoning, width=70, initial_indent="  ", subsequent_indent="  ")
@@ -90,7 +95,8 @@ def main():
         step_num = 0
         trace = []
         full_trace = []
-        print(f"\n  Interaction: {interaction_id}\n\n  ── Actions ──")
+        print(f"\n  ── {question} ──")
+        print(f"  Interaction: {interaction_id}\n\n  ── Actions ──")
 
         for _ in range(MAX_TURNS):
             response = chat(messages)

@@ -26,7 +26,8 @@ Rules:
 - Always qualify table names with the schema (e.g. marts.fct_orders)
 - Use DuckDB SQL syntax
 - Only write SELECT queries
-- Today's date is {date.today().isoformat()}"""
+- Today's date is {date.today().isoformat()}
+- Plain text only — no markdown, no bold, no headers, no tables"""
 
 # Tool definitions in the format OpenAI expects.
 # Each one maps to a Python function in tools.py.
