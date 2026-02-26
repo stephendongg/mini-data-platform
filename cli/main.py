@@ -38,7 +38,7 @@ def format_step(num, name, args, result):
         return f"  {num}. Sampled {rows} rows from {args['table_name']}"
     elif name == "run_sql":
         sql = args["query"].replace("\n", " ").strip()
-        return f"  {num}. SQL: {sql[:60]}{'...' if len(sql) > 60 else ''}"
+        return f"  {num}. SQL: {sql}"
     return f"  {num}. {name}"
 
 
