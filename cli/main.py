@@ -3,6 +3,8 @@ from cli.db import get_connection
 from cli.llm import chat, SYSTEM_PROMPT
 from cli.tools import list_tables, describe_table, run_sql
 
+MAX_TURNS = 10
+
 
 def execute_tool(conn, name, args):
     """Route a tool call from the LLM to the matching Python function."""
@@ -48,7 +50,7 @@ def main():
         ]
 
         # Agent loop: LLM responds with either text (done) or tool calls (keep going)
-        while True:
+        for _ in range(MAX_TURNS):
             response = chat(messages)
 
             if not response.tool_calls:
