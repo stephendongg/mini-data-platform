@@ -24,16 +24,19 @@ The LLM has four tools it can call in a loop until it has enough info to answer:
 ```
 cli/
   db.py       # Read-only DuckDB connection and query execution
-  tools.py    # Tool functions: list_tables, describe_table, run_sql
+  tools.py    # Tool functions: list_tables, describe_table, sample_data, run_sql
   llm.py      # OpenAI function calling setup and tool definitions
-  main.py     # Agent loop that routes tool calls until the LLM answers
+  main.py     # Agent loop, structured output, and interaction logging
 ```
+
+Each interaction outputs three sections: **Actions** (what the agent did), **Answer** (the result), and **Caveats** (assumptions flagged by a second LLM call). Full traces are saved to `logs/` as JSON files.
 
 ## Design Decisions
 
 - **Read-only DuckDB** — Safety guarantee at the database level
 - **Runtime schema discovery** — No hardcoded table or column names
-- **Marts schema only** — Queries the clean, analytics-ready layer
+- **Structured output** — Actions, answer, and caveats for interpretability
+- **Interaction logging** — Full traces saved with UUIDs for debugging
 - **GPT-4o-mini** — Fast, cheap, accurate enough for SQL generation
 
 ## What's Next
