@@ -93,6 +93,14 @@ TOOLS = [
     },
 ]
 
+EXPLAIN_PROMPT = """Review how an AI agent answered a data question.
+Only mention things the user might not realize from looking at the SQL:
+- Implicit assumptions (e.g. "includes all statuses, not just completed")
+- Aggregation choices (e.g. "averaged per order, not per customer")
+- Missing filters (e.g. "no date range applied")
+If the query is straightforward with no hidden assumptions, say "Straightforward query — no assumptions to flag."
+One sentence max. Do not restate the SQL."""
+
 
 def chat(messages):
     """Send messages to the LLM with tools enabled. Returns the response message.
@@ -103,3 +111,15 @@ def chat(messages):
         tools=TOOLS,
     )
     return response.choices[0].message
+
+
+def explain(question, trace, answer):
+    """Second LLM call that explains the agent's reasoning process to the user."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": EXPLAIN_PROMPT},
+            {"role": "user", "content": f"Question: {question}\n\nTrace:\n{trace}\n\nAnswer: {answer}"},
+        ],
+    )
+    return response.choices[0].message.content

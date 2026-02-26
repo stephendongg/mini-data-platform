@@ -1,9 +1,14 @@
 import json
+import textwrap
+import uuid
+from datetime import datetime
+from pathlib import Path
 from cli.db import get_connection
-from cli.llm import chat, SYSTEM_PROMPT
+from cli.llm import chat, explain, SYSTEM_PROMPT
 from cli.tools import list_tables, describe_table, sample_data, run_sql
 
 MAX_TURNS = 10
+LOG_PATH = Path(__file__).parent.parent / "logs"
 
 
 def execute_tool(conn, name, args):
@@ -20,19 +25,49 @@ def execute_tool(conn, name, args):
         return {"error": f"Unknown tool: {name}"}
 
 
-def log_tool(name, args, result):
-    """Print what the agent is doing so the user can follow along."""
-    if name == "run_sql":
-        print(f"  → {name}")
-        for line in args["query"].strip().split("\n"):
-            print(f"    {line}")
-    else:
-        print(f"  → {name}({json.dumps(args)})")
+def format_step(num, name, args, result):
+    """Format a tool call as a readable one-liner for the user."""
+    if name == "list_tables":
+        tables = [r["table"] for r in result] if isinstance(result, list) else []
+        return f"  {num}. Listed tables: {', '.join(tables)}"
+    elif name == "describe_table":
+        cols = len(result) if isinstance(result, list) else 0
+        return f"  {num}. Described {args['table_name']} → {cols} columns"
+    elif name == "sample_data":
+        rows = len(result) if isinstance(result, list) else 0
+        return f"  {num}. Sampled {rows} rows from {args['table_name']}"
+    elif name == "run_sql":
+        sql = args["query"].replace("\n", " ").strip()
+        return f"  {num}. SQL: {sql[:60]}{'...' if len(sql) > 60 else ''}"
+    return f"  {num}. {name}"
 
-    preview = json.dumps(result, default=str)
-    if len(preview) > 150:
-        preview = preview[:150] + "..."
-    print(f"  ← {preview}\n")
+
+def print_result(question, trace, answer):
+    """Print the answer and reasoning, then save to log file."""
+    indented_answer = textwrap.indent(answer, "  ")
+    print(f"\n  ── Answer ──\n{indented_answer}")
+
+    reasoning = explain(question, "\n".join(trace), answer)
+    wrapped = textwrap.fill(reasoning, width=70, initial_indent="  ", subsequent_indent="  ")
+    print(f"\n  ── Reasoning ──\n{wrapped}\n")
+
+    return reasoning
+
+
+def save_log(interaction_id, question, trace, answer, reasoning):
+    """Save the full trace as a JSON file with the interaction ID."""
+    LOG_PATH.mkdir(exist_ok=True)
+    entry = {
+        "id": interaction_id,
+        "timestamp": datetime.now().isoformat(),
+        "question": question,
+        "trace": trace,
+        "answer": answer,
+        "reasoning": reasoning,
+    }
+    filepath = LOG_PATH / f"{interaction_id}.json"
+    with open(filepath, "w") as f:
+        json.dump(entry, f, indent=2, default=str)
 
 
 def main():
@@ -51,12 +86,18 @@ def main():
             {"role": "user", "content": question},
         ]
 
-        # Agent loop: LLM responds with either text (done) or tool calls (keep going)
+        interaction_id = str(uuid.uuid4())
+        step_num = 0
+        trace = []
+        full_trace = []
+        print(f"\n  Interaction: {interaction_id}\n\n  ── Actions ──")
+
         for _ in range(MAX_TURNS):
             response = chat(messages)
 
             if not response.tool_calls:
-                print(f"\n{response.content}\n")
+                reasoning = print_result(question, trace, response.content)
+                save_log(interaction_id, question, full_trace, response.content, reasoning)
                 break
 
             messages.append(response)
@@ -69,7 +110,11 @@ def main():
                 except Exception as e:
                     result = {"error": str(e)}
 
-                log_tool(name, args, result)
+                step_num += 1
+                step = format_step(step_num, name, args, result)
+                print(step)
+                trace.append(step.strip())
+                full_trace.append({"tool": name, "args": args, "result": result})
 
                 messages.append({
                     "role": "tool",
