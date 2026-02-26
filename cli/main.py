@@ -49,7 +49,7 @@ def print_result(question, trace, answer):
 
     reasoning = explain(question, "\n".join(trace), answer)
     wrapped = textwrap.fill(reasoning, width=70, initial_indent="  ", subsequent_indent="  ")
-    print(f"\n  ── Reasoning ──\n{wrapped}\n")
+    print(f"\n  ── Caveats ──\n{wrapped}\n")
 
     return reasoning
 
