@@ -1,7 +1,7 @@
 import json
 from cli.db import get_connection
 from cli.llm import chat, SYSTEM_PROMPT
-from cli.tools import list_tables, describe_table, run_sql
+from cli.tools import list_tables, describe_table, sample_data, run_sql
 
 MAX_TURNS = 10
 
@@ -12,6 +12,8 @@ def execute_tool(conn, name, args):
         return list_tables(conn)
     elif name == "describe_table":
         return describe_table(conn, args["table_name"])
+    elif name == "sample_data":
+        return sample_data(conn, args["table_name"])
     elif name == "run_sql":
         return run_sql(conn, args["query"])
     else:

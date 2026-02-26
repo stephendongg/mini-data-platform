@@ -12,11 +12,12 @@ uv run python -m cli.main           # Start the agent
 
 ## How It Works
 
-The LLM has three tools it can call in a loop until it has enough info to answer:
+The LLM has four tools it can call in a loop until it has enough info to answer:
 
 1. `list_tables` — see what tables exist and their row counts
 2. `describe_table` — get column names and types for a table
-3. `run_sql` — execute a read-only SQL query
+3. `sample_data` — peek at example rows to see actual values
+4. `run_sql` — execute a read-only SQL query
 
 ## Architecture
 
@@ -39,6 +40,6 @@ cli/
 
 - Multi-turn memory (follow-up questions)
 - Configurable data source (any DuckDB path/schema)
-- Sample data tool (let the LLM peek at rows)
+- Evals (automated test suite with known questions and expected answers)
 
 See [instructions/README.md](instructions/README.md) for the original assignment.

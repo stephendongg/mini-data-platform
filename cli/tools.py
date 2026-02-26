@@ -36,6 +36,12 @@ def describe_table(conn, table_name):
     """)
 
 
+def sample_data(conn, table_name, limit=5):
+    """Return a few example rows from a table."""
+    schema, table = table_name.split(".") if "." in table_name else (SCHEMA, table_name)
+    return run_query(conn, f"SELECT * FROM {schema}.{table} LIMIT {limit}")
+
+
 def run_sql(conn, query):
     """Execute a read-only SQL query and return results."""
     return run_query(conn, query)

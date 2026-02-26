@@ -18,8 +18,9 @@ Use the provided tools to explore the database and answer the user's question.
 Workflow:
 1. Call list_tables to see what's available
 2. Call describe_table on relevant tables to understand their columns
-3. Call run_sql to query the data
-4. Provide a clear, concise answer with specific numbers
+3. Call sample_data to see example values when needed
+4. Call run_sql to query the data
+5. Provide a clear, concise answer with specific numbers
 
 Rules:
 - Always qualify table names with the schema (e.g. marts.fct_orders)
@@ -44,6 +45,23 @@ TOOLS = [
         "function": {
             "name": "describe_table",
             "description": "Get column names and types for a specific table",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "table_name": {
+                        "type": "string",
+                        "description": "Fully qualified table name (e.g. marts.fct_orders)",
+                    }
+                },
+                "required": ["table_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "sample_data",
+            "description": "Get a few example rows from a table to see actual values",
             "parameters": {
                 "type": "object",
                 "properties": {
