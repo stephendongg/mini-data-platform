@@ -31,6 +31,9 @@ warehouse/*.duckdb.wal
 # Environment variables
 .env
 
+# Scratch files
+test.py
+
 # OS
 .DS_Store
 Thumbs.db
