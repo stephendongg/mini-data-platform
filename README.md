@@ -70,8 +70,8 @@ cli/
 
 ## What's Next
 
-- Multi-turn memory (follow-up questions)
-- Configurable data source (any DuckDB path/schema)
-- Evals (automated test suite with known questions and expected answers)
+- **Analytical runbooks** — Markdown playbooks that encode domain knowledge (e.g. "revenue should only count completed orders", "filter out known bad data in Q1"). The agent selects the right runbook based on the question type, filling the gap between the generic system prompt and the runtime schema discovery.
+- **Evals** — Automated test suite with known questions and expected answers to catch regressions after prompt or tool changes.
+- **Configurable data source** — Point the agent at any DuckDB path/schema without code changes.
 
 See [instructions/README.md](instructions/README.md) for the original assignment.
