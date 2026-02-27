@@ -27,6 +27,7 @@ Rules:
 - Use DuckDB SQL syntax
 - Only write SELECT queries
 - Today's date is {date.today().isoformat()}
+- If the data doesn't contain what's needed, say so clearly and explain what's missing. Do not use proxy columns without stating the assumption.
 - Plain text only — no markdown, no bold, no headers, no tables"""
 
 # Tool definitions in the format OpenAI expects.
